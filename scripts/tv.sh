@@ -21,15 +21,15 @@ case "$action" in
     ;;
   install)
     sdb connect "$TV_IP" || true
-    target="$(sdb devices | awk '/device$/{print $1; exit}')"
-    test -n "$target"
-    tizen install -n "$ROOT/Warp.wgt" -t "$target"
+    serial="$(sdb devices | awk '$2=="device" {print $1; exit}')"
+    test -n "$serial"
+    tizen install -n "$ROOT/Warp.wgt" -s "$serial"
     ;;
   run)
     sdb connect "$TV_IP" || true
-    target="$(sdb devices | awk '/device$/{print $1; exit}')"
-    test -n "$target"
-    tizen run -p WarpTV2022.Warp -t "$target"
+    serial="$(sdb devices | awk '$2=="device" {print $1; exit}')"
+    test -n "$serial"
+    tizen run -p WarpTV2022.Warp -s "$serial"
     ;;
   logs)
     sdb connect "$TV_IP" || true
