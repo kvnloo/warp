@@ -1,9 +1,19 @@
 import path from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { toClassicWidgetHtml } from "./src/widget-html";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "tizen-classic-script",
+      enforce: "post",
+      transformIndexHtml(html) {
+        return toClassicWidgetHtml(html);
+      },
+    },
+  ],
   resolve: {
     alias: {
       "@warp/plex": path.resolve(__dirname, "../../packages/plex/src/index.ts"),
@@ -17,8 +27,10 @@ export default defineConfig({
     outDir: "dist",
     cssCodeSplit: false,
     sourcemap: false,
+    modulePreload: false,
     rollupOptions: {
       output: {
+        format: "iife",
         inlineDynamicImports: true,
         entryFileNames: "assets/app.js",
         assetFileNames: "assets/app.[ext]",
