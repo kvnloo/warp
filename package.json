@@ -1,0 +1,33 @@
+{
+  "name": "warp",
+  "private": true,
+  "version": "0.1.0",
+  "license": "GPL-3.0-only",
+  "description": "Fast Plex client for Samsung Tizen, targeted at the QN85B.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @warp/tizen",
+    "build": "npm run build -w @warp/tizen && node scripts/check-dist.mjs",
+    "test": "vitest run",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "package:tizen": "bash scripts/package-tizen.sh",
+    "tv:connect": "bash scripts/tv.sh connect",
+    "tv:install": "bash scripts/tv.sh install",
+    "tv:run": "bash scripts/tv.sh run",
+    "tv:logs": "bash scripts/tv.sh logs",
+    "tv": "npm run build && npm run package:tizen && npm run tv:install && npm run tv:run"
+  },
+  "devDependencies": {
+    "typescript": "5.6.3",
+    "vitest": "2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}

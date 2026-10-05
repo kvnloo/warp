@@ -1,0 +1,21 @@
+name: tizen-sign
+on:
+  workflow_dispatch:
+jobs:
+  sign:
+    if: ${{ secrets.TIZEN_AUTHOR_P12 != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: signing is local-first
+        run: |
+          echo "Certificate bytes and passwords stay in GitHub Actions secrets."
+          echo "Do not commit author.p12 or profiles.xml."
+          echo "A runner with Tizen Studio can call: tizen package -t wgt -s Warp -- apps/tizen/dist"
+          test -f apps/tizen/dist/config.xml

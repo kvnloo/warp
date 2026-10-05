@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=1920,user-scalable=no"/>
+    <title>Warp</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if (/Tizen/i.test(navigator.userAgent) || location.protocol === "file:") {
+        var script = document.createElement("script");
+        script.src = "$WEBAPIS/webapis/webapis.js";
+        document.head.appendChild(script);
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
