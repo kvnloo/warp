@@ -114,6 +114,7 @@ class Ducker:
         self.tv = tv
         self.cfg = config or DuckerConfig()
         self.prior: Optional[int] = None  # volume to give back; None = not ducked
+        self.level: int = self.cfg.duck_level  # volume we set while ducked
         self.ducked_at: Optional[float] = None
         self.backoff_until = 0.0
         self.pending_restore = False
@@ -137,6 +138,7 @@ class Ducker:
             return False
         self.prior = current
         self.ducked_at = now
+        self.level = self.cfg.duck_level
         try:
             self.tv.duck(self.cfg.duck_level)
         except Exception:
@@ -144,6 +146,25 @@ class Ducker:
             self.restore(now)
             return False
         self.events.append((now, f"duck:{current}->{self.cfg.duck_level}"))
+        return True
+
+    def ease(self, now: float, steps: int) -> bool:
+        """Duck less deeply (raise the ducked level by ``steps``), staying below
+        the prior volume. Used when the ducked set is buried in room noise and
+        the detector can no longer hear when the programme is back."""
+        if self.prior is None or self.pending_restore:
+            return False
+        new_level = min(self.level + steps, self.prior - 1)
+        if new_level <= self.level:
+            return False
+        try:
+            self.tv.duck(new_level)
+        except Exception:
+            self.events.append((now, "error:duck"))
+            self.restore(now)
+            return False
+        self.events.append((now, f"ease:{self.level}->{new_level}"))
+        self.level = new_level
         return True
 
     def restore(self, now: float) -> bool:
@@ -179,7 +200,7 @@ class Ducker:
             self.events.append((now, "error:get_volume"))
             self.restore(now)
             return "error"
-        if current != self.cfg.duck_level:
+        if current != self.level:
             # Someone used the remote: their volume wins, and we stay away.
             self.events.append((now, f"manual:{current}"))
             self.prior = None

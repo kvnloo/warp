@@ -37,6 +37,7 @@ class Engine:
         self.machine = machine
         self.ducker = ducker
         self.scorer = scorer  # optional NN blend over the same features
+        self.ease_steps = 3
         self.actions: List[Tuple[float, str]] = []
 
     def step(self, f: Features, ts: float) -> Step:
@@ -50,6 +51,12 @@ class Engine:
                 self.machine.leave(now)
                 self.detector.on_duck(now, False)
                 action = f"restore:{intervened}" if intervened != "manual" else "cancel:manual"
+            if self.machine.ducked and self.ducker.ducked and self.detector.loudness_inert:
+                # Ducked so deep the mic only hears the room: duck less.
+                if self.ducker.ease(now, self.ease_steps):
+                    self.detector.on_ease(now)
+                    conf = 0.7
+                    action = "ease"
             decision = self.machine.update(conf, now)
             if decision is Action.DUCK:
                 if self.ducker.duck(now):

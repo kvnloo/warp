@@ -30,7 +30,7 @@ class StateConfig:
     duck_confidence: float = 0.6
     restore_confidence: float = 0.4
     duck_dwell_s: float = 2.0
-    restore_dwell_s: float = 1.5
+    restore_dwell_s: float = 1.0
     max_duck_s: float = 240.0
     recovery_s: float = 3.0
 

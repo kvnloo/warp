@@ -5,8 +5,10 @@ Cues, each a vote in [0, 1]:
 * loudness - short-term level vs a slow rolling programme baseline. The
   baseline freezes while the level is elevated, so a hot pod cannot drag it
   up, and unfreezes if the elevation outlasts any plausible pod.
-* crest    - peak-to-RMS drop vs the programme baseline (compressed ads);
-  worth at most half a vote so a music bed cannot duck by itself.
+* crest    - peak-to-RMS drop vs the programme baseline (compressed ads).
+  Loudness and crest are weighted so that neither alone reaches the duck
+  threshold: a loud action scene is not compressed, and a music bed is not
+  louder; an ad is usually both (or compressed and bracketed by silence).
 * silence  - a quiet gap (pod boundary) gives a short decaying boost.
 * grid     - quiet gaps spaced on the 15/30/45/60 s ad-unit grid hold the
   vote up through a pod; it never ducks alone.
@@ -31,6 +33,8 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Deque, List, Optional
 
+import numpy as np
+
 from .features import BLOCK_S, Features
 
 AD_UNITS_S = (15.0, 30.0, 45.0, 60.0)
@@ -42,9 +46,15 @@ class DetectorConfig:
     baseline_tau_s: float = 60.0
     warmup_s: float = 20.0
     delta_db: float = 3.0  # loudness jump that is "most of a vote"
+    loud_dead_zone_db: float = 1.5  # scene-to-scene drift that earns nothing
+    fast_blocks: int = 2  # 1 s window used to notice the programme coming back
     full_conf_factor: float = 1.4
-    crest_drop_db: float = 2.0
-    crest_share: float = 0.5
+    crest_drop_db: float = 3.0
+    crest_dead_zone_db: float = 1.0
+    loud_weight: float = 0.55
+    crest_weight: float = 0.45
+    noise_floor_blocks: int = 1200  # 10 min of un-ducked history for the room floor
+    quiet_above_floor_db: float = 6.0
     max_elevated_s: float = 300.0
     quiet_below_baseline_db: float = 18.0
     silence_gate_db: float = -50.0
@@ -111,6 +121,9 @@ class AdDetector:
         self._pod_starts: List[float] = []
         self._duck = _DuckState()
         self._skip_baseline_until = -math.inf
+        self._levels: Deque[float] = deque(maxlen=self.cfg.noise_floor_blocks)
+        self.noise_floor_db: Optional[float] = None
+        self._crest_elevated_s = 0.0
         self.now = 0.0
 
     # -- inputs -----------------------------------------------------------
@@ -132,6 +145,16 @@ class AdDetector:
             frozen=vote.confidence,
         )
 
+    def on_ease(self, ts: float) -> None:
+        """The duck was made shallower; measure the drop again from scratch."""
+        d = self._duck
+        if not d.active:
+            return
+        d.buried = False
+        d.offset_db = 0.0
+        d.settle_until = ts + self.cfg.duck_settle_s
+        d.frozen = 0.7  # hold the duck while re-measuring
+
     def observe(self, f: Features, ts: float) -> Vote:
         cfg = self.cfg
         self.now = ts + BLOCK_S
@@ -142,32 +165,40 @@ class AdDetector:
         self._short_crest = sum(x.crest_db for x in self._win) / len(self._win)
 
         d = self._duck
+        if not d.active:
+            self._levels.append(f.loudness_db)
+            if len(self._levels) >= 20:
+                # Quietest block heard recently: a pause or a cut, i.e. the room.
+                self.noise_floor_db = float(min(self._levels))
         if d.active and d.settle_until is not None and self.now >= d.settle_until:
             d.settle_until = None
             d.frozen = None
             assert d.pre_level is not None
-            if raw_short <= cfg.silence_gate_db + cfg.buried_headroom_db:
+            floor = cfg.silence_gate_db if self.noise_floor_db is None else max(cfg.silence_gate_db, self.noise_floor_db)
+            if raw_short <= floor + cfg.buried_headroom_db:
                 d.buried = True
             else:
                 d.offset_db = max(0.0, min(cfg.max_duck_offset_db, d.pre_level - raw_short))
         self._short_db = raw_short + d.offset_db
         block_db = f.loudness_db + d.offset_db
 
-        self._track_quiet(block_db, ts)
+        self._track_quiet(f.loudness_db, block_db, ts)
         self._track_baseline()
         return self.vote()
 
     # -- internals --------------------------------------------------------
-    def _is_quiet(self, block_db: float) -> bool:
-        if block_db <= self.cfg.silence_gate_db:
+    def _is_quiet(self, raw_block_db: float, block_db: float) -> bool:
+        if raw_block_db <= self.cfg.silence_gate_db:
+            return True
+        if self.noise_floor_db is not None and raw_block_db <= self.noise_floor_db + self.cfg.quiet_above_floor_db:
             return True
         return self.baseline_db is not None and block_db < self.baseline_db - self.cfg.quiet_below_baseline_db
 
-    def _track_quiet(self, block_db: float, ts: float) -> None:
-        if self._duck.active and self._duck.settle_until is not None:
+    def _track_quiet(self, raw_block_db: float, block_db: float, ts: float) -> None:
+        if self._duck.active and (self._duck.settle_until is not None or self._duck.buried):
             self._quiet_since = None
             return  # the duck itself is a level drop, not a separator
-        if self._is_quiet(block_db):
+        if self._is_quiet(raw_block_db, block_db):
             if self._quiet_since is None:
                 self._quiet_since = ts
                 self._separator(ts)
@@ -205,6 +236,14 @@ class AdDetector:
         alpha = min(1.0, BLOCK_S / cfg.baseline_tau_s)
         self.baseline_db += alpha * (self._short_db - self.baseline_db)
         assert self.baseline_crest is not None
+        # Crest baseline also freezes while the crest is depressed (an ad or a
+        # music bed), with the same escape hatch for a wrong baseline.
+        if self.baseline_crest - self._short_crest > cfg.crest_drop_db / 2:
+            self._crest_elevated_s += BLOCK_S
+            if self._crest_elevated_s < cfg.max_elevated_s:
+                return
+        else:
+            self._crest_elevated_s = 0.0
         self.baseline_crest += alpha * (self._short_crest - self.baseline_crest)
 
     @property
@@ -219,6 +258,25 @@ class AdDetector:
     def loudness_inert(self) -> bool:
         return self._duck.buried
 
+    def _cues(self, level_db: float, crest_db: float) -> "tuple[float, float]":
+        cfg = self.cfg
+        assert self.baseline_db is not None and self.baseline_crest is not None
+        if self._duck.buried or level_db <= cfg.silence_gate_db:
+            return 0.0, 0.0
+        full_l = cfg.delta_db * cfg.full_conf_factor
+        delta = level_db - self.baseline_db - cfg.loud_dead_zone_db
+        loud = max(0.0, min(1.0, delta / (full_l - cfg.loud_dead_zone_db)))
+        full_c = cfg.crest_drop_db * cfg.full_conf_factor
+        drop = self.baseline_crest - crest_db - cfg.crest_dead_zone_db
+        crest = max(0.0, min(1.0, drop / (full_c - cfg.crest_dead_zone_db)))
+        return loud, crest
+
+    def _fast(self) -> "tuple[float, float]":
+        recent = list(self._win)[-self.cfg.fast_blocks :]
+        p = sum(_power(x.loudness_db) for x in recent) / len(recent)
+        level = 10.0 * math.log10(max(p, 1e-12)) + self._duck.offset_db
+        return level, sum(x.crest_db for x in recent) / len(recent)
+
     def vote(self) -> Vote:
         cfg = self.cfg
         ts = self.now
@@ -227,14 +285,16 @@ class AdDetector:
         if not self.warm:
             return Vote(ts, 0.0, reason="warming")
         assert self.baseline_db is not None and self.baseline_crest is not None
-        loud = crest = 0.0
-        if not self._duck.buried and self._short_db > cfg.silence_gate_db:
-            delta = self._short_db - self.baseline_db
-            loud = max(0.0, min(1.0, delta / (cfg.delta_db * cfg.full_conf_factor)))
-            drop = self.baseline_crest - self._short_crest
-            crest = cfg.crest_share * max(0.0, min(1.0, drop / (cfg.crest_drop_db * cfg.full_conf_factor)))
+        loud, crest = self._cues(self._short_db, self._short_crest)
+        ducked = self._duck.active
+        if ducked and self._win:
+            # While ducked, also look at the last second so the volume comes
+            # back quickly when the programme does: take the weaker evidence.
+            f_loud, f_crest = self._cues(*self._fast())
+            if cfg.loud_weight * f_loud + cfg.crest_weight * f_crest < cfg.loud_weight * loud + cfg.crest_weight * crest:
+                loud, crest = f_loud, f_crest
         silence = 0.0
-        if self._separators:
+        if self._separators and not ducked:
             age = ts - self._separators[-1]
             if age < cfg.silence_decay_s:
                 silence = cfg.silence_boost * (1.0 - age / cfg.silence_decay_s)
@@ -246,9 +306,13 @@ class AdDetector:
             expected = self._pod_starts[-1] + cfg.clock_period_s
             if abs(ts - expected) <= cfg.clock_window_s:
                 clock = cfg.clock_bias
-        evidence = loud + crest
+        evidence = cfg.loud_weight * loud + cfg.crest_weight * crest
         # Boundary cues only add to live evidence; they never duck alone.
         support = (silence + grid + clock) if evidence > 0.15 else 0.0
+        if ducked:
+            # The grid may hold a duck through a sagging spot, but not once the
+            # crest says uncompressed programme is back.
+            support = grid if (evidence > 0.3 and crest > 0.3) else 0.0
         conf = max(0.0, min(1.0, evidence + support))
         if self._duck.buried:
             # Loudness is blind while the ducked set is buried in room noise:
