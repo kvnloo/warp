@@ -9,7 +9,8 @@ const [distDir, outDir] = process.argv.slice(2).map((p) => path.resolve(p));
 if (!distDir || !outDir) throw new Error("usage: proof-screens.mjs <mock-dist> <out>");
 mkdirSync(outDir, { recursive: true });
 const chrome = process.env.CHROME || "/usr/bin/chromium";
-const profile = mkdtempSync(path.join(path.dirname(outDir), ".chrome-proof-"));
+mkdirSync(path.join(path.dirname(outDir), ".cache"), { recursive: true });
+const profile = mkdtempSync(path.join(path.dirname(outDir), ".cache", "chrome-proof-"));
 const port = 9300 + Math.floor(Math.random() * 500);
 const proc = spawn(chrome, [
   "--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
@@ -130,7 +131,29 @@ await key("right", 1);
 await shot("10-home-customised", 1200);
 
 const stored = await evaluate(`localStorage.getItem("warp.prefs.v1")`);
-writeFileSync(path.join(outDir, "receipt.json"), JSON.stringify({ shots, railTiming, gridTiming, storedPrefs: stored, console: consoleLines, note: "headless desktop Chromium on groot, not QN85B" }, null, 2));
-console.log(JSON.stringify({ shots: shots.length, railTiming, gridTiming, storedPrefs: stored, console: consoleLines }, null, 2));
+// Home rows: hide Continue Watching, move Recently Added TV above Movies.
+await key("up", 3);
+await key("right", 3);
+await key("enter");
+await key("down", 9);
+await key("left", 2);
+await key("enter");
+await key("down", 2);
+await key("right");
+await key("enter");
+await shot("11-settings-home-rows");
+await key("back");
+await shot("12-home-reordered", 1200);
+await key("up");
+await key("right", 3);
+await key("enter");
+await key("down", 14);
+await key("enter");
+await shot("13-settings-after-reset");
+const afterReset = await evaluate(`localStorage.getItem("warp.prefs.v1")`);
+const rootVars = await evaluate(`getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() + " " + document.documentElement.getAttribute("data-focus")`);
+const receipt = { shots, railTiming, gridTiming, storedPrefs: stored, afterReset, rootVars, console: consoleLines, note: "headless desktop Chromium on groot, not QN85B" };
+writeFileSync(path.join(outDir, "receipt.json"), JSON.stringify(receipt, null, 2));
+console.log(JSON.stringify({ ...receipt, shots: shots.length }, null, 2));
 ws.close();
 proc.kill("SIGTERM");

@@ -7,3 +7,4 @@ dist/
 apps/tizen/.buildResult/
 .cache/
 proof/
+.chrome-proof-*/
