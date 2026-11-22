@@ -47,11 +47,11 @@ const SIZE_LABEL: Record<string, string> = { s: "Small", m: "Medium", l: "Large"
 
 const OPTION_ROWS: Array<Extract<SettingsRow, { kind: "option" }>> = [
   {
-    kind: "option", id: "accent", group: "Appearance", label: "Accent colour", hint: "Focus ring, buttons and progress bars.",
+    kind: "option", id: "accent", group: "Appearance", label: "Accent colour", hint: "Buttons, focus and progress.",
     choices: (Object.keys(ACCENTS) as AccentId[]).map((id) => ({ value: id, label: ACCENTS[id].label, swatch: ACCENTS[id].hex })),
   },
   {
-    kind: "option", id: "background", group: "Appearance", label: "Background", hint: "Backdrop follows the focused title, dimmed.",
+    kind: "option", id: "background", group: "Appearance", label: "Background", hint: "Backdrop shows the focused title.",
     choices: BACKGROUNDS.map((value) => ({ value, label: value === "solid" ? "Solid" : value === "gradient" ? "Gradient" : "Backdrop" })),
   },
   {
@@ -60,7 +60,7 @@ const OPTION_ROWS: Array<Extract<SettingsRow, { kind: "option" }>> = [
   },
   {
     kind: "option", id: "radius", group: "Appearance", label: "Corners",
-    hint: "Corner rounding on posters and buttons.",
+    hint: "Posters, buttons and panels.",
     choices: RADII.map((value) => ({ value, label: value === "sharp" ? "Sharp" : value === "soft" ? "Soft" : "Round" })),
   },
   {

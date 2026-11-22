@@ -135,12 +135,14 @@ html[data-motion="reduced"] .backdrop img { transition: none; }
   will-change: transform;
 }
 .hero { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; }
+.hero.is-away .hero-body { opacity: 0; }
 .hero-art, .details-art { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; object-fit: cover; opacity: 0; transition: opacity 360ms ease; }
 .scrim-left, .scrim-bottom { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; }
 .scrim-left { background: linear-gradient(90deg, rgba(11, 13, 16, 0.92) 0%, rgba(11, 13, 16, 0.62) 36%, rgba(11, 13, 16, 0) 68%); }
 .scrim-bottom { background: linear-gradient(0deg, #0b0d10 0%, rgba(11, 13, 16, 0.92) 24%, rgba(11, 13, 16, 0.2) 52%, rgba(11, 13, 16, 0) 70%); }
 html[data-bg="gradient"] .hero .scrim-bottom { background: linear-gradient(0deg, rgba(11, 13, 16, 0.98) 0%, rgba(11, 13, 16, 0.9) 24%, rgba(11, 13, 16, 0.2) 52%, rgba(11, 13, 16, 0) 70%); }
 .hero-body {
+  transition: opacity var(--dur) ease;
   position: absolute;
   left: 96px;
   top: 0;
@@ -188,6 +190,7 @@ html[data-bg="gradient"] .hero .scrim-bottom { background: linear-gradient(0deg,
   font-size: calc(27px * var(--ts));
   font-weight: 650;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: transform var(--dur) var(--ease);
 }
 .btn-primary { background: #f4f1ea; color: #0b0d10; }
@@ -197,7 +200,7 @@ html[data-bg="gradient"] .hero .scrim-bottom { background: linear-gradient(0deg,
   transform: scale(1.07);
   box-shadow: 0 12px 32px rgba(var(--accent-rgb), 0.38);
 }
-.btn-value { font-style: normal; font-weight: 500; margin-left: 12px; opacity: 0.7; max-width: 340px; overflow: hidden; text-overflow: ellipsis; }
+.btn-value { font-style: normal; font-weight: 500; margin-left: 12px; opacity: 0.72; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
 .icon-play {
   display: inline-block;
   width: 0;
@@ -231,7 +234,8 @@ html[data-bg="gradient"] .hero .scrim-bottom { background: linear-gradient(0deg,
 
 /* ---- rails + cards ----------------------------------------------------- */
 .rails { position: absolute; left: 0; width: 1920px; }
-.rail { position: absolute; left: 96px; width: 1824px; }
+.rail { position: absolute; left: 96px; width: 1824px; transition: opacity var(--dur) ease; }
+.rail.is-above { opacity: 0; }
 .rail-title {
   display: flex;
   align-items: baseline;
@@ -407,11 +411,11 @@ html[data-focus="lift"] .card.is-focused .card-title { transform: translate3d(0,
   border-radius: var(--radius);
 }
 .srow.is-focused { background: rgba(255, 255, 255, 0.07); box-shadow: inset 5px 0 0 var(--accent); }
-.srow-text { flex: 0 0 380px; min-width: 0; }
+.srow-text { flex: 1 1 auto; min-width: 0; margin-right: 28px; }
 .srow-label { font-size: calc(28px * var(--ts)); font-weight: 600; }
 .srow-hint { margin-top: 6px; font-size: calc(20px * var(--ts)); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .srow.is-focused .srow-hint { color: var(--muted); }
-.choices { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.choices { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .choice {
   padding: 12px 22px;
   border-radius: var(--radius-sm);
@@ -439,8 +443,8 @@ html[data-focus="lift"] .card.is-focused .card-title { transform: translate3d(0,
   background: rgba(255, 255, 255, 0.045);
   overflow: hidden;
 }
-.preview-cards { position: relative; margin-top: 40px; height: 420px; }
-.preview-actions { position: absolute; left: 32px; bottom: 40px; display: flex; gap: 16px; }
+.preview-cards { position: relative; margin-top: 36px; }
+.preview-actions { display: flex; gap: 16px; margin-top: 8px; }
 
 /* ---- login ------------------------------------------------------------- */
 .login { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }

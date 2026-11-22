@@ -4,10 +4,12 @@ import { progressOf, type ImageFn } from "./Card";
 import { metaLine } from "./meta";
 
 /** Featured title over full-bleed art. Art paints after text; the scrims are plain gradients. */
-export const Hero = memo(function Hero({ item, label, focusCol, image }: {
+export const Hero = memo(function Hero({ item, label, focusCol, away = false, image }: {
   item: MediaItem | undefined;
   label: string;
   focusCol: number;
+  /** Focus is down in the rails: text fades so it never sits under the nav. */
+  away?: boolean;
   image: ImageFn;
 }) {
   if (!item) {
@@ -26,7 +28,7 @@ export const Hero = memo(function Hero({ item, label, focusCol, image }: {
   const progress = progressOf(item);
   const title = item.type === "episode" ? item.grandparentTitle || item.title : item.title;
   return (
-    <section className="hero">
+    <section className={away ? "hero is-away" : "hero"}>
       {art && <img className="hero-art" alt="" src={art} decoding="async" onLoad={(event) => { event.currentTarget.style.opacity = "1"; }} />}
       <div className="scrim-left" />
       <div className="scrim-bottom" />

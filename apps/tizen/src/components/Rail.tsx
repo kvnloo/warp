@@ -5,13 +5,17 @@ import type { PosterSize, RailId } from "../prefs";
 import { Card, type ImageFn } from "./Card";
 
 /** Horizontal row: the track moves by transform, and only ~10 cards exist at once. */
-export const Rail = memo(function Rail({ kind, title, items, top, col, focused, posterSize, image }: {
+export const Rail = memo(function Rail({ kind, title, items, top, col, focused, above = false, inSeason = false, posterSize, image }: {
   kind: RailId;
   title: string;
   items: MediaItem[];
   top: number;
   col: number;
   focused: boolean;
+  /** Scrolled past: faded out so it never shows through the nav. */
+  above?: boolean;
+  /** Episodes of one season: caption shows episode number and title. */
+  inSeason?: boolean;
   posterSize: PosterSize;
   image: ImageFn;
 }) {
@@ -21,10 +25,10 @@ export const Rail = memo(function Rail({ kind, title, items, top, col, focused, 
   const cards = [];
   for (let index = win.start; index < win.end; index += 1) {
     const item = items[index];
-    cards.push(<Card key={item.ratingKey} item={item} focused={focused && index === col} metrics={metrics} x={index * step} y={0} image={image} />);
+    cards.push(<Card key={item.ratingKey} item={item} focused={focused && index === col} metrics={metrics} x={index * step} y={0} image={image} inSeason={inSeason} />);
   }
   return (
-    <section className={focused ? "rail is-focused" : "rail"} style={{ top }}>
+    <section className={`rail${focused ? " is-focused" : ""}${above ? " is-above" : ""}`} style={{ top }}>
       <h2 className="rail-title">{title}<span className="rail-count">{focused ? `${col + 1} / ${items.length}` : ""}</span></h2>
       <div className="rail-track" style={{ height: metrics.height, transform: `translate3d(${-win.scroll * step}px,0,0)` }}>{cards}</div>
     </section>

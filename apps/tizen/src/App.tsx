@@ -36,7 +36,7 @@ import {
 } from "./details-model";
 import { heroItem, orderRails } from "./home-rails";
 import { isBack, isEnter, isPlayPause, keyDirection, registerRemoteKeys } from "./keys";
-import { HERO_H, NAV_H, cardMetrics, homeScrollY, railTops, visibleCards } from "./layout";
+import { HERO_H, NAV_H, gridMetrics, homeScrollY, railTops } from "./layout";
 import { mockSource } from "./mock";
 import { loadPrefs, resetPrefs, savePrefs, type Prefs } from "./prefs";
 import { createPlayer, playerKind, type PlayerHandle } from "./player";
@@ -448,7 +448,7 @@ export function App() {
   }
 
   function onLibraryKey(direction: ReturnType<typeof keyDirection>, enter: boolean, back: boolean): void {
-    const cols = visibleCards(cardMetrics("recent", prefs));
+    const { cols } = gridMetrics(prefs.posterSize);
     if (direction === "up" && library.index < cols) { setNavFocus(library.tab); return; }
     if (direction) {
       setLibrary((current) => ({ ...current, index: gridMove(current.index, current.items.length, cols, direction) }));
@@ -599,7 +599,7 @@ export function App() {
       {screen === "login" && <Login pin={pin} status={status} />}
       {screen === "home" && (
         <div className="home" style={{ transform: `translate3d(0,${-homeY}px,0)` }}>
-          {prefs.hero && <Hero item={featured} label={heroLabel} focusCol={zone === "hero" && navFocus < 0 ? heroCol : -1} image={image} />}
+          {prefs.hero && <Hero item={featured} label={heroLabel} focusCol={zone === "hero" && navFocus < 0 ? heroCol : -1} away={homeY > 0} image={image} />}
           <div className="rails" style={{ top: prefs.hero ? HERO_H : NAV_H + 8 }}>
             {home
               ? rails.map((rail, index) => (
@@ -611,6 +611,7 @@ export function App() {
                   top={tops[index]}
                   col={railCols[rail.hub.identifier] ?? 0}
                   focused={zone === "rail" && navFocus < 0 && index === row}
+                  above={zone === "rail" && navFocus < 0 && index < row}
                   posterSize={prefs.posterSize}
                   image={image}
                 />

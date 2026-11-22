@@ -92,6 +92,11 @@ export function nextEpisode(episodes: readonly MediaItem[]): MediaItem | undefin
   return episodes.find((episode) => episode.viewOffset) ?? episodes.find((episode) => !episode.viewCount) ?? episodes[0];
 }
 
+/** "English (TrueHD 7.1)" -> "English" for the compact button; the picker shows the full label. */
+export function shortStream(label: string | undefined): string | undefined {
+  return label?.replace(/\s*\(.*\)\s*$/, "") || label;
+}
+
 export function detailActions(state: DetailsState): DetailAction[] {
   const { item } = state;
   if (item.type === "show" || item.type === "season") {
@@ -101,10 +106,10 @@ export function detailActions(state: DetailsState): DetailAction[] {
   const actions: DetailAction[] = [{ id: "play", label: item.viewOffset ? "Resume" : "Play" }];
   if (item.viewOffset) actions.push({ id: "restart", label: "From start" });
   const part = currentPart(state);
-  if (item.parts.length > 1) actions.push({ id: "version", label: "Version", value: part?.label || "" });
+  if (item.parts.length > 1) actions.push({ id: "version", label: "Version", value: (part?.label || "").split(" · ")[0] });
   const audio = audioOptions(part);
-  if (audio.length) actions.push({ id: "audio", label: "Audio", value: audio.find((option) => option.id === selectedId(part, "audio"))?.label });
-  if (byType(part, 3).length) actions.push({ id: "subs", label: "Subtitles", value: subtitleOptions(part).find((option) => option.id === selectedId(part, "subs"))?.label });
+  if (audio.length) actions.push({ id: "audio", label: "Audio", value: shortStream(audio.find((option) => option.id === selectedId(part, "audio"))?.label) });
+  if (byType(part, 3).length) actions.push({ id: "subs", label: "Subtitles", value: shortStream(subtitleOptions(part).find((option) => option.id === selectedId(part, "subs"))?.label) });
   return actions;
 }
 

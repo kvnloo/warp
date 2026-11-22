@@ -2,7 +2,7 @@
  * Pixel layout for the 1920x1080 canvas, as pure functions so scrolling is a
  * transform computed in JS (no layout reads, no scrollIntoView) and testable.
  */
-import { posterMetrics, type Prefs, type RailId } from "./prefs";
+import { posterMetrics, type PosterSize, type Prefs, type RailId } from "./prefs";
 
 export const SAFE_X = 96;
 export const NAV_H = 132;
@@ -83,7 +83,16 @@ export function homeScrollY(row: number | null, tops: readonly number[], heroOn:
   return Math.max(0, railsStart + (tops[Math.min(row, tops.length - 1)] ?? 0) - NAV_H - 8);
 }
 
+/** Library grid: column count from the poster size, then widths stretched so the grid spans the safe area. */
+export function gridMetrics(size: PosterSize): { metrics: CardMetrics; cols: number } {
+  const base = posterMetrics(size);
+  const cols = Math.max(1, Math.round((CONTENT_W + base.gap) / (base.width + base.gap)));
+  const gap = size === "s" ? 24 : 28;
+  const width = Math.floor((CONTENT_W - (cols - 1) * gap) / cols);
+  return { metrics: { width, height: Math.round(width * 1.5), gap, landscape: false }, cols };
+}
+
 /** Library grid row pitch for the current poster/text size. */
 export function gridRowHeight(prefs: Pick<Prefs, "posterSize" | "textSize">): number {
-  return posterMetrics(prefs.posterSize).height + Math.round(66 * textScale(prefs) + 18) + 28;
+  return gridMetrics(prefs.posterSize).metrics.height + Math.round(66 * textScale(prefs) + 18) + 28;
 }

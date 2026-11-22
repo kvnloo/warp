@@ -76,9 +76,11 @@ export const Settings = memo(function Settings({ rows, pos, prefs, active, serve
 }) {
   const ts = textScale(prefs);
   const layout = settingsLayout(rows, ts);
-  const viewport = 1080 - 300;
-  const focusTop = layout.tops[pos.row] ?? 0;
-  const scroll = Math.max(0, Math.min(layout.height - viewport + 40, focusTop - viewport / 3));
+  // Scroll in whole-row steps (two rows of context above focus) so no row is ever half cut.
+  const anchorRow = Math.max(0, pos.row - 2);
+  let scroll = anchorRow === 0 ? 0 : layout.tops[anchorRow];
+  const header = layout.groups.find((group) => group.top < scroll && scroll - group.top <= Math.round(GROUP_H * ts));
+  if (header) scroll = header.top;
   const poster = cardMetrics("recent", prefs);
   return (
     <section className="settings">
@@ -102,9 +104,9 @@ export const Settings = memo(function Settings({ rows, pos, prefs, active, serve
       </div>
       <aside className="preview">
         <p className="overline">Preview</p>
-        <div className="preview-cards" style={{ height: poster.height }}>
+        <div className="preview-cards" style={{ height: poster.height + Math.round(66 * ts + 30) }}>
           {preview.slice(0, 2).map((item, index) => (
-            <Card key={item.ratingKey} item={item} focused={index === 1} metrics={poster} x={index * (poster.width + poster.gap)} y={0} image={image} />
+            <Card key={item.ratingKey} item={item} focused={index === 0} metrics={poster} x={index * (poster.width + poster.gap)} y={0} image={image} />
           ))}
         </div>
         <div className="preview-actions">

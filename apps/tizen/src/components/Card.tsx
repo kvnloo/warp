@@ -4,7 +4,11 @@ import type { CardMetrics } from "../layout";
 
 export type ImageFn = (path: string | undefined, width: number, height: number) => string;
 
-export function cardText(item: MediaItem): { title: string; sub: string } {
+export function cardText(item: MediaItem, inSeason = false): { title: string; sub: string } {
+  if (item.type === "episode" && inSeason) {
+    const minutes = item.duration ? `${Math.round(item.duration / 60_000)}m` : "";
+    return { title: `${item.index ?? ""}. ${item.title}`, sub: item.viewOffset ? `${minutes} · in progress` : minutes };
+  }
   if (item.type === "episode") {
     return { title: item.grandparentTitle || item.title, sub: `S${item.parentIndex ?? "?"} · E${item.index ?? "?"}  ${item.title}` };
   }
@@ -31,17 +35,18 @@ function initials(title: string): string {
 }
 
 /** One poster or 16:9 tile. Positioned once with left/top; focus only flips a class. */
-export const Card = memo(function Card({ item, focused, metrics, x, y, image }: {
+export const Card = memo(function Card({ item, focused, metrics, x, y, image, inSeason = false }: {
   item: MediaItem;
   focused: boolean;
   metrics: CardMetrics;
   x: number;
   y: number;
   image: ImageFn;
+  inSeason?: boolean;
 }) {
   const path = metrics.landscape ? (item.type === "episode" ? item.thumb : item.art || item.thumb) : item.thumb;
   const src = image(path, metrics.width, metrics.height);
-  const { title, sub } = cardText(item);
+  const { title, sub } = cardText(item, inSeason);
   const progress = progressOf(item);
   const watched = !progress && (item.viewCount ?? 0) > 0;
   return (

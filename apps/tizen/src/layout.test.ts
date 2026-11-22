@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultPrefs } from "./prefs";
-import { HERO_H, NAV_H, cardMetrics, gridWindow, homeScrollY, railHeight, railTops, railWindow, visibleCards } from "./layout";
+import { CONTENT_W, HERO_H, NAV_H, cardMetrics, gridMetrics, gridWindow, homeScrollY, railHeight, railTops, railWindow, visibleCards } from "./layout";
 
 describe("layout", () => {
   it("uses 16:9 cards for Continue Watching and 2:3 posters elsewhere", () => {
@@ -41,5 +41,16 @@ describe("layout", () => {
     expect(homeScrollY(2, tops, true)).toBe(HERO_H + 1000 - NAV_H - 8);
     expect(homeScrollY(0, tops, false)).toBe(0);
     expect(homeScrollY(9, tops, false)).toBe(1000);
+  });
+
+  it("stretches library columns to the full safe width", () => {
+    for (const size of ["s", "m", "l"] as const) {
+      const { metrics, cols } = gridMetrics(size);
+      const used = cols * metrics.width + (cols - 1) * metrics.gap;
+      expect(used).toBeLessThanOrEqual(CONTENT_W);
+      expect(CONTENT_W - used).toBeLessThan(cols);
+    }
+    expect(gridMetrics("m").cols).toBe(7);
+    expect(gridMetrics("s").cols).toBeGreaterThan(gridMetrics("l").cols);
   });
 });

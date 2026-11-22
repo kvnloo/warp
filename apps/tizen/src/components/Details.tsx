@@ -76,6 +76,7 @@ export const Details = memo(function Details({ state, row, col, decision, image,
               top={0}
               col={row === "episodes" ? col : 0}
               focused={row === "episodes"}
+              inSeason
               posterSize={posterSize}
               image={image}
             />

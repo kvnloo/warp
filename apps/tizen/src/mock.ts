@@ -32,11 +32,11 @@ function poster(title: string, seed: number): string {
   const words = title.toUpperCase().split(" ");
   const lines = words.reduce<string[]>((out, word) => {
     const last = out[out.length - 1];
-    if (last && (last + " " + word).length <= 11) out[out.length - 1] = `${last} ${word}`;
+    if (last && (last + " " + word).length <= 10) out[out.length - 1] = `${last} ${word}`;
     else out.push(word);
     return out;
   }, []);
-  const text = lines.map((line, i) => `<text x="30" y="${420 - (lines.length - 1 - i) * 46}" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#fff" letter-spacing="2">${escape(line)}</text>`).join("");
+  const text = lines.map((line, i) => `<text x="30" y="${410 - (lines.length - 1 - i) * 46}" font-family="Georgia,serif" font-size="40" font-weight="700" fill="#fff" letter-spacing="2"${line.length > 9 ? ' textLength="240" lengthAdjust="spacingAndGlyphs"' : ""}>${escape(line)}</text>`).join("");
   return svg(
     `<defs><linearGradient id="g" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="hsl(${h},55%,42%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360},60%,12%)"/></linearGradient>` +
     `<radialGradient id="r" cx="0.7" cy="0.25" r="0.6"><stop offset="0" stop-color="hsl(${(h + 20) % 360},90%,75%)" stop-opacity="0.75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>` +

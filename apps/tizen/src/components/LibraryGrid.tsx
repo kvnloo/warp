@@ -1,10 +1,10 @@
 import { memo } from "react";
 import type { MediaItem } from "@warp/plex";
-import { SAFE_X, cardMetrics, gridRowHeight, gridWindow, visibleCards } from "../layout";
+import { SAFE_X, gridMetrics, gridRowHeight, gridWindow } from "../layout";
 import type { PosterSize, TextSize } from "../prefs";
 import { Card, type ImageFn } from "./Card";
 
-const GRID_TOP = 250;
+const GRID_TOP = 300;
 
 /** Virtualized poster grid: a 10k library still mounts only ~4 rows of cards. */
 export const LibraryGrid = memo(function LibraryGrid({ title, items, index, active, loading, posterSize, textSize, image }: {
@@ -17,8 +17,7 @@ export const LibraryGrid = memo(function LibraryGrid({ title, items, index, acti
   textSize: TextSize;
   image: ImageFn;
 }) {
-  const metrics = cardMetrics("recent", { posterSize });
-  const cols = visibleCards(metrics);
+  const { metrics, cols } = gridMetrics(posterSize);
   const rowH = gridRowHeight({ posterSize, textSize });
   const rows = Math.max(1, Math.ceil((1080 - GRID_TOP) / rowH));
   const win = gridWindow(index, items.length, cols, rows);
