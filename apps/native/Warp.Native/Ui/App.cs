@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using Path = System.IO.Path;
 using System.Threading.Tasks;
 using Tizen.NUI;
 using Tizen.NUI.BaseComponents;
@@ -48,14 +49,14 @@ namespace Warp.Ui
         string lastBuildScreen = "";
         int keyCount;
 
-        public Screen Current => stack.Count > 0 ? stack[stack.Count - 1] : null;
+        public Screen Top => stack.Count > 0 ? stack[stack.Count - 1] : null;
         public string DataDir => Tizen.Applications.Application.Current.DirectoryInfo.Data;
         public string ResDir => Tizen.Applications.Application.Current.DirectoryInfo.Resource;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            AppDomain.CurrentDomain.UnhandledException += (s, e) => Telemetry.Report("unhandled", Telemetry.F("error", e.ExceptionObject?.ToString(), "screen", Current?.Name));
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => Telemetry.Report("unhandled", Telemetry.F("error", e.ExceptionObject?.ToString(), "screen", Top?.Name));
             TaskScheduler.UnobservedTaskException += (s, e) => { Telemetry.Report("task_error", Telemetry.F("error", e.Exception?.ToString())); e.SetObserved(); };
             var t0 = clock.Elapsed.TotalMilliseconds;
             try { Create(); }
@@ -95,7 +96,7 @@ namespace Warp.Ui
             {
                 var fps = frames.Fps();
                 peak = Math.Max(peak, fps);
-                if (Debug) { hud.Show(); hud.Text = $"{Current?.Name} · {fps:0} fps · key→frame {lastK2f:0.0} ms (p95 {KeyToFrame.Pct(95):0.0}) · build {lastBuild:0} ms  "; }
+                if (Debug) { hud.Show(); hud.Text = $"{Top?.Name} · {fps:0} fps · key→frame {lastK2f:0.0} ms (p95 {KeyToFrame.Pct(95):0.0}) · build {lastBuild:0} ms  "; }
                 else hud.Hide();
                 if (++ticks % 5 == 0) { PerfReport(fps, peak); peak = 0; }
                 return true;
@@ -115,7 +116,7 @@ namespace Warp.Ui
         {
             long rss = 0;
             try { foreach (var line in File.ReadAllLines("/proc/self/status")) if (line.StartsWith("VmRSS:")) rss = long.Parse(line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[1]); } catch (Exception) { }
-            Telemetry.Report("perf", Telemetry.F("screen", Current?.Name, "fps_now", fps, "fps_peak5s", peak, "keys", keyCount,
+            Telemetry.Report("perf", Telemetry.F("screen", Top?.Name, "fps_now", fps, "fps_peak5s", peak, "keys", keyCount,
                 "k2f_last", lastK2f, "k2f_p50", KeyToFrame.Pct(50), "k2f_p95", KeyToFrame.Pct(95), "k2f_max", KeyToFrame.Max,
                 "handle_p50", Handle.Pct(50), "handle_p95", Handle.Pct(95), "build_last", lastBuild, "build_screen", lastBuildScreen,
                 "build_p50", Build.Pct(50), "build_max", Build.Max, "rss_kb", rss, "gc_kb", GC.GetTotalMemory(false) / 1024));
@@ -170,7 +171,7 @@ namespace Warp.Ui
             Prefs = p.Clone();
             Theme = new Theme(Prefs);
             PrefsLogic.Save(Store, Prefs);
-            if (rebuildCurrent && Current != null) Rebuild(Current);
+            if (rebuildCurrent && Top != null) Rebuild(Top);
         }
 
         public void SetDebug(bool on)
@@ -183,7 +184,7 @@ namespace Warp.Ui
 
         public void Push(Screen s)
         {
-            var prev = Current;
+            var prev = Top;
             if (prev != null) { prev.OnHide(); prev.Root?.Hide(); }
             s.A = this;
             stack.Add(s);
@@ -193,14 +194,14 @@ namespace Warp.Ui
         public void Pop()
         {
             if (stack.Count <= 1) { Exit(); return; }
-            var top = Current;
+            var top = Top;
             stack.RemoveAt(stack.Count - 1);
             top.OnClose();
             Theme.DisposeTree(top.Root);
             top.Root = null;
-            Current.Root?.Show();
-            Current.OnShow();
-            Telemetry.Report("nav", Telemetry.F("to", Current.Name, "from", top.Name));
+            Top.Root?.Show();
+            Top.OnShow();
+            Telemetry.Report("nav", Telemetry.F("to", Top.Name, "from", top.Name));
         }
 
         /// <summary>Replace the whole stack with a top-level tab (Home, Movies, Shows, Settings, Login).</summary>
@@ -260,34 +261,34 @@ namespace Warp.Ui
             var key = Normalise(name);
             if (key == null) { Telemetry.Report("key_unmapped", Telemetry.F("name", name)); return; }
             if (key == "red") { SetDebug(!Debug); return; }
-            var screen = Current?.Name;
+            var screen = Top?.Name;
             try
             {
-                bool handled = Current != null && Current.OnKey(key);
+                bool handled = Top != null && Top.OnKey(key);
                 if (!handled && key == "back") Pop();
             }
             catch (Exception ex) { Telemetry.Report("key_error", Telemetry.F("key", key, "screen", screen, "error", ex.ToString())); }
             double handleMs = (clock.ElapsedTicks - t0) * 1000.0 / Stopwatch.Frequency;
             Handle.Add(handleMs);
             keyCount++;
-            var detail = Current?.Detail;
+            var detail = Top?.Detail;
             frames.OnNextFrame = () =>
             {
                 double k2f = (clock.ElapsedTicks - t0) * 1000.0 / Stopwatch.Frequency;
                 lastK2f = k2f; KeyToFrame.Add(k2f);
-                Telemetry.Report("key", Telemetry.F("key", key, "screen", screen, "now", Current?.Name, "handle_ms", handleMs, "k2f_ms", k2f, "detail", detail));
+                Telemetry.Report("key", Telemetry.F("key", key, "screen", screen, "now", Top?.Name, "handle_ms", handleMs, "k2f_ms", k2f, "detail", detail));
             };
         }
 
         protected override void OnTerminate()
         {
-            Telemetry.Report("terminate", Telemetry.F("screen", Current?.Name));
+            Telemetry.Report("terminate", Telemetry.F("screen", Top?.Name));
             foreach (var s in stack) { try { s.OnClose(); } catch (Exception) { } }
             base.OnTerminate();
         }
 
-        protected override void OnPause() { Telemetry.Report("pause", Telemetry.F("screen", Current?.Name)); Current?.OnHide(); base.OnPause(); }
-        protected override void OnResume() { Telemetry.Report("resume", Telemetry.F("screen", Current?.Name)); base.OnResume(); }
+        protected override void OnPause() { Telemetry.Report("pause", Telemetry.F("screen", Top?.Name)); Top?.OnHide(); base.OnPause(); }
+        protected override void OnResume() { Telemetry.Report("resume", Telemetry.F("screen", Top?.Name)); base.OnResume(); }
 
         static void Main(string[] args) => new App().Run(args);
     }

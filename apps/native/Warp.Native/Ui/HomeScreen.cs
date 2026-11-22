@@ -186,7 +186,7 @@ namespace Warp.Ui
         void Refresh()
         {
             if (Root == null) return;
-            if (A.Current == this) A.Rebuild(this); else ThemeVersion = -1;
+            if (A.Top == this) A.Rebuild(this); else ThemeVersion = -1;
         }
 
         MediaItem Focused => row < 0 ? hero : row < rows.Count ? rows[row].Items[rows[row].Focus] : null;

@@ -132,14 +132,14 @@ namespace Warp.Ui
                 Telemetry.Report("details_error", Telemetry.F("error", PlexClient.Redact(ex.Message)));
             }
             if (Root == null) return;
-            if (A.Current == this) A.Rebuild(this); else ThemeVersion = -1;
+            if (A.Top == this) A.Rebuild(this); else ThemeVersion = -1;
         }
 
         async Task LoadSeason(int i)
         {
             s.SeasonIndex = i; episodeCol = 0;
             try { s.Episodes = await A.Source.Children(s.Seasons[i].RatingKey); } catch (Exception) { s.Episodes = new List<MediaItem>(); }
-            if (Root != null && A.Current == this) A.Rebuild(this);
+            if (Root != null && A.Top == this) A.Rebuild(this);
         }
 
         void ApplyFocus()
@@ -212,7 +212,7 @@ namespace Warp.Ui
                 if (ep.ViewOffset.HasValue && !full.ViewOffset.HasValue) full.ViewOffset = ep.ViewOffset;
                 var d = Decision.Decide(full, Engine.Native);
                 Telemetry.Report("play_decision", Telemetry.F("mode", d.ModeLabel, "reason", d.Reason, "video", d.VideoCodec, "audio", d.AudioCodec, "hdr", d.Hdr, "episode", ep.RatingKey));
-                if (A.Current == this) A.Push(new PlayerScreen(full, d, A.Source.PlaybackUrl(d)));
+                if (A.Top == this) A.Push(new PlayerScreen(full, d, A.Source.PlaybackUrl(d)));
             }
             catch (Exception ex) { Telemetry.Report("play_error", Telemetry.F("error", PlexClient.Redact(ex.Message))); }
         }

@@ -81,7 +81,7 @@ namespace Warp.Ui
                 Telemetry.Report("library_error", Telemetry.F("kind", kind, "error", error));
             }
             if (Root == null) return;
-            if (A.Current == this) A.Rebuild(this); else ThemeVersion = -1;
+            if (A.Top == this) A.Rebuild(this); else ThemeVersion = -1;
         }
 
         void Window(bool animate)

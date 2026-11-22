@@ -69,7 +69,7 @@ namespace Warp.Ui
                 Telemetry.Report("pin_error", Telemetry.F("error", ex.Message));
             }
             busy = false;
-            if (!closed && A.Current == this) A.Rebuild(this);
+            if (!closed && A.Top == this) A.Rebuild(this);
         }
 
         void StartPolling()
@@ -93,10 +93,10 @@ namespace Warp.Ui
                 {
                     poll.Stop();
                     status = "Linked. Finding your server…";
-                    if (A.Current == this) A.Rebuild(this);
+                    if (A.Top == this) A.Rebuild(this);
                     Telemetry.Report("pin_linked", null);
                     var (server, uri) = await A.Plex.PickServer(token);
-                    if (server == null) { status = "Linked, but no Plex server answered. Check that the server is on."; Telemetry.Report("no_server", null); if (A.Current == this) A.Rebuild(this); return; }
+                    if (server == null) { status = "Linked, but no Plex server answered. Check that the server is on."; Telemetry.Report("no_server", null); if (A.Top == this) A.Rebuild(this); return; }
                     A.Session.Token = token; A.Session.ServerUri = uri; A.Session.ServerName = server.Name; A.Session.Mock = false;
                     Session.Save(A.Store, A.Session);
                     A.Source = new PlexSource(A.Plex, A.Session);
