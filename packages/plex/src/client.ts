@@ -42,6 +42,9 @@ function streamOf(raw: Record<string, unknown>): Stream {
   const type = num(raw.streamType) || 0;
   const streamType: Stream["streamType"] = type === 2 || type === 3 ? type : 1;
   return {
+    id: str(raw.id) || undefined,
+    selected: raw.selected === true || raw.selected === 1 || raw.selected === "1",
+    language: str(raw.languageTag || raw.language) || undefined,
     streamType,
     codec: str(raw.codec),
     bitrate: num(raw.bitrate),
@@ -63,11 +66,14 @@ export function parseItem(raw: unknown): MediaItem | null {
   const media = Array.isArray(row.Media) ? row.Media : [];
   const parts: Part[] = [];
   for (const entry of media) {
-    const partRows = Array.isArray(asRecord(entry).Part) ? asRecord(entry).Part as unknown[] : [];
+    const mediaRow = asRecord(entry);
+    const partRows = Array.isArray(mediaRow.Part) ? mediaRow.Part as unknown[] : [];
     for (const partRaw of partRows) {
       const part = asRecord(partRaw);
       const streams = Array.isArray(part.Stream) ? part.Stream.map((stream) => streamOf(asRecord(stream))) : [];
       parts.push({
+        id: str(part.id) || undefined,
+        label: versionLabel(mediaRow),
         key: str(part.key),
         container: str(part.container),
         duration: num(part.duration),
@@ -90,8 +96,30 @@ export function parseItem(raw: unknown): MediaItem | null {
     parentTitle: str(row.parentTitle),
     index: num(row.index),
     parentIndex: num(row.parentIndex),
+    parentRatingKey: str(row.parentRatingKey) || undefined,
+    grandparentRatingKey: str(row.grandparentRatingKey) || undefined,
+    grandparentArt: str(row.grandparentArt) || undefined,
+    contentRating: str(row.contentRating) || undefined,
+    audienceRating: num(row.audienceRating) ?? num(row.rating),
+    tagline: str(row.tagline) || undefined,
+    genres: Array.isArray(row.Genre) ? row.Genre.map((genre) => str(asRecord(genre).tag)).filter(Boolean) : undefined,
+    leafCount: num(row.leafCount),
+    viewedLeafCount: num(row.viewedLeafCount),
+    viewCount: num(row.viewCount),
     parts,
   };
+}
+
+/** "4K HEVC HDR · 7.1" style label for one Media entry (a version). */
+export function versionLabel(media: Record<string, unknown>): string {
+  const res = str(media.videoResolution).toLowerCase();
+  const resLabel = res === "4k" ? "4K" : /^\d+$/.test(res) ? `${res}p` : res.toUpperCase();
+  const codec = str(media.videoCodec).toUpperCase();
+  const hdr = str(media.videoDynamicRange || "");
+  const channels = num(media.audioChannels);
+  const head = [resLabel, codec, hdr && hdr !== "SDR" ? hdr : ""].filter(Boolean).join(" ");
+  const audio = channels ? (channels >= 8 ? "7.1" : channels >= 6 ? "5.1" : channels === 2 ? "Stereo" : `${channels}ch`) : "";
+  return [head, audio].filter(Boolean).join(" · ") || "Original";
 }
 
 export function parseHubs(payload: unknown): Hub[] {
@@ -233,6 +261,25 @@ export class PlexClient {
       .filter((item): item is MediaItem => item != null);
   }
 
+  /** Seasons of a show or episodes of a season. */
+  async children(serverUri: string, token: string, ratingKey: string): Promise<MediaItem[]> {
+    const payload = await this.json(`${serverUri.replace(/\/$/, "")}/library/metadata/${ratingKey}/children`, token);
+    const container = asRecord(asRecord(payload).MediaContainer);
+    return (Array.isArray(container.Metadata) ? container.Metadata : [])
+      .map(parseItem)
+      .filter((item): item is MediaItem => item != null);
+  }
+
+  /** Persist the chosen audio/subtitle stream for a part (Plex remembers it per user). subtitle "0" = off. */
+  async selectStreams(serverUri: string, token: string, partId: string, choice: { audioStreamID?: string; subtitleStreamID?: string }): Promise<void> {
+    const query = new URLSearchParams({ allParts: "1" });
+    if (choice.audioStreamID) query.set("audioStreamID", choice.audioStreamID);
+    if (choice.subtitleStreamID) query.set("subtitleStreamID", choice.subtitleStreamID);
+    const url = `${serverUri.replace(/\/$/, "")}/library/parts/${partId}?${query.toString()}`;
+    const response = await this.fetchImpl(url, { method: "PUT", headers: plexHeaders(this.headers, token) });
+    if (!response.ok) throw new Error(`PUT ${url} failed: ${response.status}`);
+  }
+
   async timeline(
     serverUri: string,
     token: string,
@@ -251,4 +298,12 @@ export class PlexClient {
     });
     await this.json(`${base}/:/timeline?${query.toString()}`, token, "POST");
   }
+}
+
+/** Any-size image through the Plex transcoder (backdrops are 16:9, posters 2:3). */
+export function imageUrl(serverUri: string, token: string, path: string | undefined, width: number, height: number): string {
+  if (!path) return "";
+  if (path.startsWith("data:")) return path;
+  const base = serverUri.replace(/\/$/, "");
+  return `${base}/photo/:/transcode?width=${width}&height=${height}&minSize=1&upscale=0&url=${encodeURIComponent(path)}&X-Plex-Token=${encodeURIComponent(token)}`;
 }

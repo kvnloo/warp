@@ -5,3 +5,5 @@ dist/
 .tizen/
 *.tsbuildinfo
 apps/tizen/.buildResult/
+.cache/
+proof/

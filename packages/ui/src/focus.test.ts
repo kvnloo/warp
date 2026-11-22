@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moveFocus, visibleWindow } from "./focus";
+import { gridMove, moveFocus, visibleWindow } from "./focus";
 import { buildReceipt } from "./perf";
 
 const items = [
@@ -19,6 +19,23 @@ describe("focus", () => {
   it("windows a large library around the focused index", () => {
     const library = Array.from({ length: 100 }, (_, index) => index);
     expect(visibleWindow(library, 40, 2)).toEqual([38, 39, 40, 41, 42]);
+  });
+});
+
+describe("gridMove", () => {
+  it("moves in a row-major grid and clamps at edges", () => {
+    expect(gridMove(0, 20, 6, "right")).toBe(1);
+    expect(gridMove(5, 20, 6, "right")).toBe(5);
+    expect(gridMove(6, 20, 6, "left")).toBe(6);
+    expect(gridMove(7, 20, 6, "up")).toBe(1);
+    expect(gridMove(1, 20, 6, "up")).toBe(1);
+    expect(gridMove(1, 20, 6, "down")).toBe(7);
+  });
+
+  it("drops into a short last row instead of getting stuck", () => {
+    expect(gridMove(17, 20, 6, "down")).toBe(19);
+    expect(gridMove(19, 20, 6, "down")).toBe(19);
+    expect(gridMove(0, 0, 6, "down")).toBe(0);
   });
 });
 

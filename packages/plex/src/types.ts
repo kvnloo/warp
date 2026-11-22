@@ -3,6 +3,9 @@ export type PlaybackMode = "direct-play" | "direct-stream" | "transcode";
 export type Engine = "avplay" | "html5";
 
 export interface Stream {
+  id?: string;
+  selected?: boolean;
+  language?: string;
   streamType: 1 | 2 | 3;
   codec: string;
   bitrate?: number;
@@ -16,6 +19,9 @@ export interface Stream {
 }
 
 export interface Part {
+  id?: string;
+  /** Human label of the Media version this part belongs to, e.g. "4K HEVC HDR". */
+  label?: string;
   key: string;
   container: string;
   duration?: number;
@@ -37,6 +43,16 @@ export interface MediaItem {
   parentTitle?: string;
   index?: number;
   parentIndex?: number;
+  parentRatingKey?: string;
+  grandparentRatingKey?: string;
+  grandparentArt?: string;
+  contentRating?: string;
+  audienceRating?: number;
+  tagline?: string;
+  genres?: string[];
+  leafCount?: number;
+  viewedLeafCount?: number;
+  viewCount?: number;
   parts: Part[];
 }
 

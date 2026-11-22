@@ -28,3 +28,18 @@ export function visibleWindow<T>(items: readonly T[], focusIndex: number, radius
   const end = Math.min(items.length, focusIndex + radius + 1);
   return items.slice(start, end);
 }
+
+/** D-pad movement in a row-major grid without building a target list (fast for 10k items). */
+export function gridMove(index: number, count: number, cols: number, direction: Direction): number {
+  if (count <= 0) return 0;
+  const current = Math.min(Math.max(0, index), count - 1);
+  const col = current % cols;
+  if (direction === "left") return col > 0 ? current - 1 : current;
+  if (direction === "right") return col < cols - 1 && current + 1 < count ? current + 1 : current;
+  if (direction === "up") return current - cols >= 0 ? current - cols : current;
+  const below = current + cols;
+  if (below < count) return below;
+  // Last partial row: drop to its last item when the row below exists but is short.
+  const lastRowStart = Math.floor((count - 1) / cols) * cols;
+  return lastRowStart > current - col ? count - 1 : current;
+}

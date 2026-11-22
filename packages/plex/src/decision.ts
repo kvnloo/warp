@@ -14,7 +14,8 @@ function videoStream(part: Part): Stream | undefined {
 }
 
 function audioStream(part: Part): Stream | undefined {
-  return part.streams.find((stream) => stream.streamType === 2);
+  const audio = part.streams.filter((stream) => stream.streamType === 2);
+  return audio.find((stream) => stream.selected) ?? audio[0];
 }
 
 export function hdrOf(stream: Stream | undefined): string {

@@ -66,4 +66,10 @@ describe("QN85B playback decision", () => {
     expect(playbackUrl("http://192.0.2.10:32400/", "tok", "cid", transcode)).toContain("directPlay=0");
     expect(playbackUrl("http://192.0.2.10:32400/", "tok", "cid", transcode)).toContain("directStream=0");
   });
+
+  it("judges the selected audio stream, not the first one", () => {
+    const fixture = item({ codec: "h264", audio: "aac", container: "mp4", hdr: "sdr" });
+    fixture.parts[0].streams.push({ streamType: 2, codec: "dts", selected: true });
+    expect(decidePlayback(fixture, "html5").audioCodec).toBe("dts");
+  });
 });
