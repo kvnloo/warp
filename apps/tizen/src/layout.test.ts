@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultPrefs } from "./prefs";
-import { cardMetrics, gridWindow, railHeight, railTops, railWindow, visibleCards } from "./layout";
+import { HERO_H, NAV_H, cardMetrics, gridWindow, homeScrollY, railHeight, railTops, railWindow, visibleCards } from "./layout";
 
 describe("layout", () => {
   it("uses 16:9 cards for Continue Watching and 2:3 posters elsewhere", () => {
@@ -32,5 +32,14 @@ describe("layout", () => {
     expect(win.end - win.start).toBeLessThanOrEqual(6 * 5);
     expect(win.start).toBeLessThanOrEqual(6000);
     expect(win.end).toBeGreaterThan(6000);
+  });
+
+  it("scrolls Home so the focused rail sits under the nav", () => {
+    const tops = [0, 500, 1000];
+    expect(homeScrollY(null, tops, true)).toBe(0);
+    expect(homeScrollY(0, tops, true)).toBe(HERO_H - NAV_H - 8);
+    expect(homeScrollY(2, tops, true)).toBe(HERO_H + 1000 - NAV_H - 8);
+    expect(homeScrollY(0, tops, false)).toBe(0);
+    expect(homeScrollY(9, tops, false)).toBe(1000);
   });
 });

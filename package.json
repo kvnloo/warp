@@ -1,7 +1,7 @@
 {
   "name": "warp",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "GPL-3.0-only",
   "description": "Fast Plex client for Samsung Tizen, targeted at the QN85B.",
   "workspaces": [
@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "npm run dev -w @warp/tizen",
     "build": "npm run build -w @warp/tizen && node scripts/check-dist.mjs",
+    "build:mock": "npm run build:mock -w @warp/tizen",
     "test": "vitest run",
     "lint": "tsc --noEmit -p tsconfig.json",
     "package:tizen": "bash scripts/package-tizen.sh",

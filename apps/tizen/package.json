@@ -1,12 +1,13 @@
 {
   "name": "@warp/tizen",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "GPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173",
-    "build": "vite build"
+    "build": "vite build",
+    "build:mock": "VITE_WARP_MOCK=1 vite build --outDir ../../.cache/mock-dist --emptyOutDir"
   },
   "dependencies": {
     "react": "18.3.1",

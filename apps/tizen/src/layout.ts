@@ -6,7 +6,8 @@ import { posterMetrics, type Prefs, type RailId } from "./prefs";
 
 export const SAFE_X = 96;
 export const NAV_H = 132;
-export const HERO_H = 600;
+/** Rails start here when the hero is on; the hero art itself is full-bleed behind the nav. */
+export const HERO_H = 720;
 export const CONTENT_W = 1920 - 2 * SAFE_X;
 const TEXT_SCALE = { s: 0.9, m: 1, l: 1.14 } as const;
 
@@ -73,4 +74,16 @@ export function gridWindow(focusIndex: number, count: number, cols: number, visi
   const startRow = Math.max(0, scrollRow - overscan);
   const endRow = Math.min(rows, scrollRow + visibleRows + overscan);
   return { scrollRow, start: startRow * cols, end: Math.min(count, endRow * cols) };
+}
+
+/** Home vertical scroll: nav/hero at the top, otherwise the focused rail sits just under the nav. */
+export function homeScrollY(row: number | null, tops: readonly number[], heroOn: boolean): number {
+  if (row == null || row < 0 || !tops.length) return 0;
+  const railsStart = heroOn ? HERO_H : NAV_H + 8;
+  return Math.max(0, railsStart + (tops[Math.min(row, tops.length - 1)] ?? 0) - NAV_H - 8);
+}
+
+/** Library grid row pitch for the current poster/text size. */
+export function gridRowHeight(prefs: Pick<Prefs, "posterSize" | "textSize">): number {
+  return posterMetrics(prefs.posterSize).height + Math.round(66 * textScale(prefs) + 18) + 28;
 }

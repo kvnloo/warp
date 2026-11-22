@@ -10,5 +10,8 @@ if (!/<script[^>]*\bdefer\b[^>]*src="\.\/assets\/app\.js"|<script[^>]*src="\.\/a
   throw new Error("head script without defer runs before #root exists");
 }
 if (js.includes("Promise.withResolvers")) throw new Error("bundle uses Promise.withResolvers, which Chromium 85 lacks");
+if (js.includes("A WARP FIXTURE") || js.includes("warp-mock")) throw new Error("mock fixture leaked into the production bundle");
+if (!/version="0\.2\.0"/.test(config)) throw new Error("config.xml version is not 0.2.0");
+if (/backdrop-filter|:has\(/.test(readFileSync("apps/tizen/dist/assets/app.css", "utf8"))) throw new Error("CSS uses a feature Chromium 85 lacks");
 if (!js.includes("direct-play")) throw new Error("playback decision was tree-shaken out");
 console.log("dist ok", js.length);
