@@ -434,6 +434,8 @@ namespace Warp.Core.Tests
             var c = AppConfig.Parse("{\"logEndpoint\":\"http://a:1\",\"forceMock\":true}");
             Assert.Equal("http://a:1", c.LogEndpoint); Assert.True(c.ForceMock);
             Assert.Equal("", AppConfig.Parse("nope").LogEndpoint);
+            Assert.Equal("", AppConfig.Parse("{}").SelfTest);
+            Assert.Equal("Right wait:500 Return", AppConfig.Parse("{\"selftest\":\"Right wait:500 Return\"}").SelfTest);
             var ps = Pattern.All();
             Assert.Equal(18, ps.Count);
             Assert.Equal(16, ps.First(p => p.Id == "gray-steps-16").Patches.Count);

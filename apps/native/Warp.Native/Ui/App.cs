@@ -136,13 +136,14 @@ namespace Warp.Ui
             Telemetry.Flush();
             Telemetry.Report("log_endpoint", Telemetry.F("endpoint", Telemetry.Endpoint, "discovered", found != null));
             // the log server may also hand out a test stream for demo playback (no IPs baked into the app)
-            if (Telemetry.Endpoint.Length > 0 && string.IsNullOrEmpty(Config.MockStreamUrl))
+            if (Telemetry.Endpoint.Length > 0)
             {
                 try
                 {
                     var text = await PlexClient.Http.GetStringAsync(Telemetry.Endpoint.TrimEnd('/') + "/config");
                     var cfg = AppConfig.Parse(text);
-                    if (cfg.MockStreamUrl.Length > 0) { Config.MockStreamUrl = cfg.MockStreamUrl; if (Source is MockSource m) m.StreamUrl = cfg.MockStreamUrl; }
+                    if (cfg.MockStreamUrl.Length > 0 && Config.MockStreamUrl.Length == 0) { Config.MockStreamUrl = cfg.MockStreamUrl; if (Source is MockSource m) m.StreamUrl = cfg.MockStreamUrl; }
+                    if (cfg.SelfTest.Length > 0) RunSelfTest(cfg.SelfTest);
                 }
                 catch (Exception) { }
             }
@@ -256,8 +257,14 @@ namespace Warp.Ui
         void OnKeyEvent(object sender, Window.KeyEventArgs e)
         {
             if (e.Key.State != Tizen.NUI.Key.StateType.Down) return;
+            HandleKey(e.Key.KeyPressedName, false);
+        }
+
+        /// <summary>One key from the remote (or the opt-in self-test). Timed from arrival to the first DALi update
+        /// after the handler ran (key-to-frame), plus the handler alone (handle_ms).</summary>
+        void HandleKey(string name, bool synthetic)
+        {
             long t0 = clock.ElapsedTicks;
-            var name = e.Key.KeyPressedName;
             var key = Normalise(name);
             if (key == null) { Telemetry.Report("key_unmapped", Telemetry.F("name", name)); return; }
             if (key == "red") { SetDebug(!Debug); return; }
@@ -276,8 +283,27 @@ namespace Warp.Ui
             {
                 double k2f = (clock.ElapsedTicks - t0) * 1000.0 / Stopwatch.Frequency;
                 lastK2f = k2f; KeyToFrame.Add(k2f);
-                Telemetry.Report("key", Telemetry.F("key", key, "screen", screen, "now", Top?.Name, "handle_ms", handleMs, "k2f_ms", k2f, "detail", detail));
+                Telemetry.Report("key", Telemetry.F("key", key, "screen", screen, "now", Top?.Name, "handle_ms", handleMs, "k2f_ms", k2f, "synthetic", synthetic, "detail", detail));
             };
+        }
+
+        /// <summary>Opt-in self-test, only when the log server hands one out in /config ("selftest"): a list of
+        /// remote key names (Up, Return, XF86Back...) and "wait:ms" steps, fed through the same key handler.</summary>
+        void RunSelfTest(string script)
+        {
+            var steps = new Queue<string>(script.Split(new[] { ' ', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries));
+            Telemetry.Report("selftest_start", Telemetry.F("steps", steps.Count, "screen", Top?.Name));
+            var timer = new Timer(600);
+            timer.Tick += (s, e) =>
+            {
+                if (steps.Count == 0) { Telemetry.Report("selftest_end", Telemetry.F("screen", Top?.Name, "k2f_p50", KeyToFrame.Pct(50), "k2f_p95", KeyToFrame.Pct(95))); return false; }
+                var step = steps.Dequeue();
+                if (step.StartsWith("wait:")) { int.TryParse(step.Substring(5), out var ms); timer.Interval = (uint)Math.Max(50, ms); return true; }
+                timer.Interval = 600;
+                HandleKey(step, true);
+                return true;
+            };
+            timer.Start();
         }
 
         protected override void OnTerminate()

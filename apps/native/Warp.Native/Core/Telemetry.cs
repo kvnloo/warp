@@ -146,6 +146,8 @@ namespace Warp.Core
         public string LogEndpoint = "";
         public string MockStreamUrl = "";
         public bool ForceMock;
+        /// <summary>Opt-in key script from the log server's /config (empty = off).</summary>
+        public string SelfTest = "";
 
         public static AppConfig Parse(string raw)
         {
@@ -158,6 +160,7 @@ namespace Warp.Core
                     c.LogEndpoint = J.Str(d.RootElement, "logEndpoint");
                     c.MockStreamUrl = J.Str(d.RootElement, "mockStreamUrl");
                     c.ForceMock = J.True(d.RootElement, "forceMock");
+                    c.SelfTest = J.Str(d.RootElement, "selftest");
                 }
             }
             catch (Exception) { }
