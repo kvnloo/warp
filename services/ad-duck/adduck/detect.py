@@ -174,7 +174,11 @@ class AdDetector:
             d.settle_until = None
             d.frozen = None
             assert d.pre_level is not None
-            floor = cfg.silence_gate_db if self.noise_floor_db is None else max(cfg.silence_gate_db, self.noise_floor_db)
+            floor = cfg.silence_gate_db
+            if self.noise_floor_db is not None and d.pre_level - self.noise_floor_db > cfg.buried_headroom_db * 2:
+                # Only trust a floor that sits well under the programme: with
+                # no pauses heard yet, "quietest block" is just quiet programme.
+                floor = max(floor, self.noise_floor_db)
             if raw_short <= floor + cfg.buried_headroom_db:
                 d.buried = True
             else:

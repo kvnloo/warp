@@ -53,12 +53,6 @@ class Features:
     silent: bool
     bands_db: Tuple[float, ...]
 
-    def as_vector(self) -> np.ndarray:
-        return np.array(
-            [self.loudness_db, self.crest_db, 1.0 if self.silent else 0.0, *self.bands_db],
-            dtype=np.float64,
-        )
-
 
 def _quantise(value: float, step: float) -> float:
     return float(round(value / step) * step)
