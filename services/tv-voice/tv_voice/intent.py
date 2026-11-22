@@ -155,6 +155,8 @@ def parse(text: str) -> Optional[Match]:
         down = bool(re.search(rf"\b(?:volume|sound|audio)\b.*\b{_VOL_DOWN}\b|\b{_VOL_DOWN}\b.*\b(?:volume|sound|audio)\b", t)
                     or re.search(r"\b(?:turn|bring|knock|dial) (?:it |this |that )?(?:\w+ )?down\b", t)
                     or re.search(r"\b(?:quieter|softer)\b", t))
+        if (up and re.search(rf"\b{_VOL_DOWN}\b", t)) or (down and re.search(rf"\b{_VOL_UP}\b", t)):
+            up = down = True
         if up and not down:
             return _vol("up", t)
         if down and not up:
