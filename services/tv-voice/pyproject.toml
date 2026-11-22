@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tv-voice"
+version = "0.1.0"
+description = "TV-only voice/text controller for a Samsung Tizen TV"
+requires-python = ">=3.10"
+license = "GPL-3.0-only"
+dependencies = ["samsungtvws==3.0.7", "websocket-client>=1.6", "requests>=2.28"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "websockets>=12"]
+
+[project.scripts]
+tvctl = "tv_voice.cli:main"
+
+[tool.setuptools]
+packages = ["tv_voice"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
