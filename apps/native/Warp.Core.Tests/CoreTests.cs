@@ -384,18 +384,19 @@ namespace Warp.Core.Tests
             Assert.Null(HomeCache.Read("{", 100, 1200));
         }
 
-        [Fact] public void MockFixtureShape()
+        [Fact] public async System.Threading.Tasks.Task MockFixtureShape()
         {
             var m = new MockSource { DelayMs = 0 };
-            var hubs = m.Hubs().Result;
+            var hubs = await m.Hubs();
             Assert.Equal(4, hubs.Count);
-            Assert.Equal(1200, m.SectionAll("1", 1).Result.Count);
-            Assert.Equal(3, m.Children("s0").Result.Count);
-            Assert.Equal(10, m.Children("s0-1").Result.Count);
-            Assert.Equal("episode", m.Metadata("s0-1-4").Result.Type);
-            Assert.Equal(0.42, m.Metadata("m1").Result.ViewOffset / m.Metadata("m1").Result.Duration, 2);
+            Assert.Equal(1200, (await m.SectionAll("1", 1)).Count);
+            Assert.Equal(3, (await m.Children("s0")).Count);
+            Assert.Equal(10, (await m.Children("s0-1")).Count);
+            Assert.Equal("episode", (await m.Metadata("s0-1-4")).Type);
+            var m1 = await m.Metadata("m1");
+            Assert.Equal(0.42, m1.ViewOffset.Value / m1.Duration.Value, 2);
             Assert.StartsWith("mock:poster:", hubs[1].Items[0].Thumb);
-            m.Timeline("m1", "playing", 10, 20).Wait();
+            await m.Timeline("m1", "playing", 10, 20);
             Assert.Single(m.TimelineLog);
         }
     }

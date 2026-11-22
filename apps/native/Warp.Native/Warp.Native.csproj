@@ -1,0 +1,17 @@
+<Project Sdk="Tizen.NET.Sdk/1.1.7">
+  <!-- Warp, native: Plex client for the QN85B (Tizen 6.5 = TizenFX API9, tizen90). No web engine: NUI/DALi draws
+       on the GPU and video goes through the TV's own media pipeline (Tizen.Multimedia.Player). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>tizen90</TargetFramework>
+    <AssemblyName>Warp</AssemblyName>
+    <RootNamespace>Warp</RootNamespace>
+    <Nullable>disable</Nullable>
+    <LangVersion>8.0</LangVersion>
+    <DefineConstants Condition="'$(WarpMock)' == '1'">$(DefineConstants);WARP_MOCK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- TV runtime is .NET Core 3.1.3: compile against System.Text.Json 4.6 and use the TV's copy (bundling 6.x crashes). -->
+    <PackageReference Include="System.Text.Json" Version="4.6.0" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest package="kvnloo.warp.native" version="0.3.0" api-version="6.5" xmlns="http://tizen.org/ns/packages">
+  <profile name="tv" />
+  <ui-application appid="kvnloo.warp.native" exec="Warp.dll" type="dotnet-nui" multiple="false" taskmanage="true" launch_mode="single">
+    <label>Warp</label>
+    <icon>warp.png</icon>
+  </ui-application>
+  <privileges>
+    <privilege>http://tizen.org/privilege/internet</privilege>
+    <privilege>http://tizen.org/privilege/network.get</privilege>
+  </privileges>
+</manifest>
