@@ -17,3 +17,5 @@ Warp is GPL-3.0-only. See LICENSE.
 ## Third parties
 
 React and Vite are MIT. Their notices travel with `node_modules`. The packaged widget contains compiled React. Do not commit Tizen certificates, `profiles.xml`, or `.env`.
+
+`samsungtvws` (LGPL-3.0) is a pip dependency of `services/tv-voice`. It is used unmodified and not vendored.
